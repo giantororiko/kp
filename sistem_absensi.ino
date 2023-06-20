@@ -41,7 +41,7 @@ void setup() {
 
   rtc.begin();
   //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  //rtc.adjust(DateTime(2023, 6, 14, 9, 23, 45));
+  //rtc.adjust(DateTime(2023, 6, 3, 14, 53, 15));
 
   // Inisialisasi SD card
   if (!SD.begin(4)) {
@@ -84,7 +84,6 @@ void loop() {
     lcd.print("Presensi Masuk ");
   }
 
-  //Membaca kartu RFID yang baru dipresentasikan
   if (!mfrc522.PICC_IsNewCardPresent()) {
     return;
   }
@@ -111,7 +110,6 @@ void loop() {
       sudah_presensi = false;
       status_kartu = true;
 
-    //Verifikasi ID kartu dan menentukan status kartu
       if (readCard[i] == cards1[i]) {
         ID = 1;
         nama = "Sukarmini";
