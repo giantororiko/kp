@@ -27,8 +27,11 @@ RTC_DS3231 rtc;
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 char daysOfTheWeek[7][12] = {"Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jum'at", "Sabtu"};
 
-// Objek untuk mengakses file SD Card
-File dataFile; 
+// Objek untuk mengakses file SD
+File dataFile;
+
+int kartu_tidak_terdaftar_count = 0; // Jumlah kartu yang tidak terdaftar yang telah ditempelkan
+bool kartu_terdaftar = false; // Status kartu terdaftar
 
 void setup() {
   Serial.begin(9600);
@@ -40,8 +43,6 @@ void setup() {
   digitalWrite(buzzer, LOW);
 
   rtc.begin();
-  //rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  //rtc.adjust(DateTime(2023, 6, 3, 14, 53, 15));
 
   // Inisialisasi SD card
   if (!SD.begin(4)) {
@@ -84,6 +85,7 @@ void loop() {
     lcd.print("Presensi Masuk ");
   }
 
+  // Membaca kartu RFID yang baru dipresentasikan
   if (!mfrc522.PICC_IsNewCardPresent()) {
     return;
   }
@@ -92,9 +94,7 @@ void loop() {
     return;
   }
 
-  if (mfrc522.uid.uidByte[0] != readCard[0] ||
-      mfrc522.uid.uidByte[1] != readCard[1]) {
-
+  if (mfrc522.uid.uidByte[0] != readCard[0] || mfrc522.uid.uidByte[1] != readCard[1]) {
     Serial.println("");
     Serial.print("UID : ");
     for (byte i = 0; i < mfrc522.uid.size; i++) {
@@ -110,6 +110,7 @@ void loop() {
       sudah_presensi = false;
       status_kartu = true;
 
+      // Verifikasi ID kartu dan menentukan status kartu
       if (readCard[i] == cards1[i]) {
         ID = 1;
         nama = "Sukarmini";
@@ -120,6 +121,7 @@ void loop() {
       }
       else {
         status_kartu = false;
+        mode_pulang = false; // Menonaktifkan mode pulang jika kartu tidak terdaftar
       }
     }
   }
@@ -130,7 +132,9 @@ void loop() {
     lcd.print("Sudah Presensi");
   }
 
-  if (status_kartu == true && sudah_presensi == false) {
+  kartu_terdaftar = (status_kartu && !sudah_presensi);
+
+  if (kartu_terdaftar) {
     if (mode_pulang == false) {
       Serial.println("-----Presensi Masuk------");
       Serial.print("ID Kartu : ");
@@ -215,6 +219,18 @@ void loop() {
       }
     }
   }
+  else if (!status_kartu) {
+    kartu_tidak_terdaftar_count = 1; // Reset jumlah kartu yang tidak terdaftar jika kartu baru ditempelkan
+    lcd.setCursor(0, 1);
+    lcd.print("Tidak terdaftar");
+
+    Serial.println("Kartu tidak terdaftar");
+    Serial.println(kartu_tidak_terdaftar_count);
+  }
+  else {
+    kartu_tidak_terdaftar_count++;
+    Serial.println(kartu_tidak_terdaftar_count);
+  }
 
   digitalWrite(buzzer, HIGH);
   delay(200);
@@ -224,36 +240,35 @@ void loop() {
   delay(50);
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
+
 }
 
+// Fungsi untuk mencetak angka pada LCD dengan posisi dua digit
+void printposisilcd(int number) {
+  if (number < 10) {
+    lcd.print("0");
+  }
+  lcd.print(number);
+}
+
+// Fungsi untuk mencetak tanggal pada Serial Monitor
 void printtanggal() {
   DateTime now = rtc.now();
   Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
-  Serial.print('/');
+  Serial.print(", ");
   Serial.print(now.day());
-  Serial.print('/');
+  Serial.print("/");
   Serial.print(now.month());
-  Serial.print('/');
-  Serial.print(now.year());
+  Serial.print("/");
+  Serial.println(now.year());
 }
 
+// Fungsi untuk mencetak waktu pada Serial Monitor
 void printwaktu() {
   DateTime now = rtc.now();
-  printposisi(now.hour());
-  Serial.print(':');
-  printposisi(now.minute());
-  Serial.print(':');
-  printposisi(now.second());
-}
-
-void printposisi(int digits) {
-  if (digits < 10)
-    Serial.print("0");
-  Serial.print(digits);
-}
-
-void printposisilcd(int digits) {
-  if (digits < 10)
-    lcd.print("0");
-  lcd.print(digits);
+  printposisilcd(now.hour());
+  Serial.print(":");
+  printposisilcd(now.minute());
+  Serial.print(":");
+  printposisilcd(now.second());
 }
