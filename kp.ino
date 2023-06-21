@@ -27,7 +27,7 @@ RTC_DS3231 rtc;
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 char daysOfTheWeek[7][12] = {"Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jum'at", "Sabtu"};
 
-// Objek untuk mengakses file SD
+// Objek untuk mengakses file SD Card
 File dataFile; 
 
 void setup() {
